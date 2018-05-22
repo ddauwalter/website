@@ -9,6 +9,53 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-#Test Website
+#Loading the Libraries
 
-website should work now.
+```{r}
+suppressPackageStartupMessages({
+  library(leaflet)
+  library(dplyr)
+  library(tidyr)
+  library(ggplot2)
+  library(DT)
+})
+```
+
+```{r}
+esc <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/knb.92020.1", method = "libcurl"), 
+                stringsAsFactors = FALSE)
+head(esc)
+```
+
+```{r}
+median_esc <- esc %>% 
+  separate(sampleDate, c("Year", "Month", "Day"), sep = "-") %>% 
+  group_by(Species, SASAP.Region, Year, Location) %>% 
+  summarize(escapement = sum(DailyCount)) %>% 
+  group_by(Species) %>% 
+  summarize(median_escapement = median(escapement))
+head(median_esc)
+```
+
+#Median escapement
+```{r}
+ggplot(median_esc, aes(Species, median_escapement)) +
+  geom_col() +
+  coord_flip()
+```
+
+#Table of Data
+```{r}
+locations <- esc %>% 
+  distinct(Location, Latitude, Longitude) %>% 
+  drop_na()
+
+datatable(locations)
+```
+#Map of Locations
+```{r}
+leaflet(locations) %>% 
+  addTiles() %>% 
+  addMarkers(~ Longitude, ~ Latitude, popup = ~ Location)
+```
+
